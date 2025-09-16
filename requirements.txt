@@ -1,0 +1,10 @@
+# pip3 install -r requirements.txt
+
+loguru
+matplotlib
+paramiko
+Pillow
+psutil
+pycryptodome
+requests
+watchdog
