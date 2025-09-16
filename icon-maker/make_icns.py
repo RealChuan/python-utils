@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 make-icns.py
@@ -15,44 +14,10 @@ import argparse
 import tempfile
 import subprocess
 from PIL import Image, ImageOps
+from icon_common import parse_hex_color, square_image
 
 # icns 所需全部分辨率
 ICNS_SIZES = [16, 32, 64, 128, 256, 512, 1024]
-
-
-def parse_hex_color(hex_color: str):
-    """
-    支持 #RGB、#RGBA、#RRGGBB、#RRGGBBAA
-    返回 (R, G, B, A)  0-255
-    """
-    hex_color = hex_color.lstrip("#")
-    n = len(hex_color)
-    if n == 3:  # #RGB   -> #RRGGBB + 不透明
-        hex_color = "".join(c * 2 for c in hex_color) + "FF"
-    elif n == 4:  # #RGBA  -> #RRGGBBAA
-        hex_color = "".join(c * 2 for c in hex_color)
-    elif n == 6:  # #RRGGBB -> 不透明
-        hex_color += "FF"
-    elif n != 8:
-        raise ValueError("颜色格式错误，支持：#RGB、#RGBA、#RRGGBB、#RRGGBBAA")
-
-    return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4, 6))
-
-
-def square_image(img: Image.Image, bg_color=None) -> Image.Image:
-    """将 img 做成最小外接正方形，bg_color=None 代表透明"""
-    if img.width == img.height:
-        return img.copy()
-    side = max(img.width, img.height)
-    if bg_color is None:  # 透明
-        new_im = Image.new("RGBA", (side, side), (0, 0, 0, 0))
-    else:  # 纯色
-        new_im = Image.new("RGBA", (side, side), bg_color)
-    # 居中粘贴
-    x = (side - img.width) // 2
-    y = (side - img.height) // 2
-    new_im.paste(img, (x, y), img if img.mode == "RGBA" else None)
-    return new_im
 
 
 def build_icns(source_img: Image.Image, output_icns: str):
