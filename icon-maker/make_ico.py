@@ -11,7 +11,7 @@ make_ico.py
 import os
 import sys
 import argparse
-from PIL import Image, ImageOps
+from PIL import Image
 from icon_common import parse_hex_color, square_image
 
 # 常用 ico 尺寸（Windows 推荐倒序存放）
@@ -34,7 +34,7 @@ def build_ico(source_img: Image.Image, output_ico: str) -> None:
         sizes=[(s, s) for s in ICO_SIZES],
         append_images=icons[1:],
     )
-    print(f"✅ 已生成 {output_ico}（含尺寸：{ICO_SIZES}）")
+    print(f"✅ 已生成 -> {output_ico}（含尺寸：{ICO_SIZES}）")
 
 
 def main(argv=None):
@@ -68,7 +68,6 @@ def main(argv=None):
 
     # 5. 生成 ico
     build_ico(square, out_ico)
-    print("已生成 →", out_ico)
 
 
 if __name__ == "__main__":

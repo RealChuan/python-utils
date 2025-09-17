@@ -9,38 +9,29 @@ webdav.py
     python webdav.py -h
 
     # 2. 上传本地文件
-    python webdav.py -u https://example.com/dav/ -U user -P pass put local.txt /remote.txt
+    python webdav.py -u https://example.com/dav/  -U user -P pass put local.txt /remote.txt
 
     # 3. 下载文件
-    python webdav.py -u https://example.com/dav/ -U user -P pass get /remote.txt local.txt
+    python webdav.py -u https://example.com/dav/  -U user -P pass get /remote.txt local.txt
 
     # 4. 删除文件
-    python webdav.py -u https://example.com/dav/ -U user -P pass delete /remote.txt
+    python webdav.py -u https://example.com/dav/  -U user -P pass delete /remote.txt
 
     # 5. 移动文件
-    python webdav.py -u https://example.com/dav/ -U user -P pass move /old.txt /new.txt
+    python webdav.py -u https://example.com/dav/  -U user -P pass move /old.txt /new.txt
 """
 from __future__ import annotations
 
 import argparse
-import logging
 import sys
 from pathlib import Path
 from typing import Optional
-
+from cli_logger import log_init, logger
 import requests
 import urllib3
 
 # 关闭 SSL 警告（默认禁用，可通过 --verify 打开）
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-# ---------- 日志 ----------
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%H:%M:%S",
-)
-logger = logging.getLogger("webdav")
 
 
 # ---------- 核心客户端 ----------
@@ -54,7 +45,6 @@ class WebDAV:
         self.sess = requests.Session()
         self.sess.auth = (username, password)
         self.sess.verify = verify_ssl
-        # 部分服务器需要 XML 头，这里先留空，按需添加
         self.sess.headers.update({"User-Agent": "python-webdav/1.0"})
 
     # --- 内部请求 ---
@@ -109,7 +99,6 @@ class WebDAV:
             data=xml,
             headers={"Depth": "1", "Content-Type": "application/xml"},
         )
-        # 粗略统计 <response> 节点数
         count = r.text.count("<d:response>") or r.text.count("<response>")
         logger.info(f"propfind    {remote} -> {count} entries")
         return count
@@ -122,7 +111,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "-u",
         "--url",
         required=True,
-        help="WebDAV 基础地址，如 https://example.com/dav/",
+        help="WebDAV 基础地址，如 https://example.com/dav/ ",
     )
     p.add_argument("-U", "--username", required=True, help="用户名")
     p.add_argument("-P", "--password", required=True, help="密码")
@@ -174,4 +163,5 @@ def main(argv: Optional[list] = None) -> None:
 
 
 if __name__ == "__main__":
+    log_init()
     main()

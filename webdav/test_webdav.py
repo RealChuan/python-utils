@@ -11,12 +11,12 @@ from __future__ import annotations
 import os
 import sys
 import unittest
-import requests
 from pathlib import Path
 
 # 把当前目录加入搜索路径，以便 import webdav
 sys.path.insert(0, os.path.dirname(__file__))
 import webdav  # noqa: E402
+from cli_logger import log_init, logger  # 统一日志入口
 
 # ---------- 配置 ----------
 LOCAL_FILE = Path(__file__)  # 用自身文件当测试上传样本
@@ -38,7 +38,7 @@ class WebDAVTest(unittest.TestCase):
             cls.online = True
         except Exception as e:
             cls.online = False
-            print(f"[WARN] WebDAV 服务不可用，跳过在线用例：{e}")
+            logger.warning(f"WebDAV 服务不可用，跳过在线用例：{e}")
 
     def setUp(self):
         if not self.online:
@@ -79,5 +79,6 @@ class WebDAVTest(unittest.TestCase):
 
 # ---------- 主入口 ----------
 if __name__ == "__main__":
+    log_init()
     # 支持命令行参数 -v 查看详细日志
     unittest.main(verbosity=2)

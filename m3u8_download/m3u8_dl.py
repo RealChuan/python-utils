@@ -20,42 +20,15 @@ m3u8_dl.py
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 import time
 from pathlib import Path
 from typing import List, Optional, Tuple
+from cli_logger import log_init, logger
 
 import requests
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
-
-
-# ------------------ 日志 ------------------
-class ColoredLog:
-    """极简彩色日志，无额外依赖"""
-
-    BLUE = "\033[94m"
-    GREEN = "\033[92m"
-    YELLOW = "\033[93m"
-    RED = "\033[91m"
-    RESET = "\033[0m"
-
-    @staticmethod
-    def info(msg: str) -> None:
-        print(f"{ColoredLog.BLUE}[INFO ]{ColoredLog.RESET} {msg}")
-
-    @staticmethod
-    def succ(msg: str) -> None:
-        print(f"{ColoredLog.GREEN}[SUCC ]{ColoredLog.RESET} {msg}")
-
-    @staticmethod
-    def warn(msg: str) -> None:
-        print(f"{ColoredLog.YELLOW}[WARN ]{ColoredLog.RESET} {msg}", file=sys.stderr)
-
-    @staticmethod
-    def error(msg: str) -> None:
-        print(f"{ColoredLog.RED}[ERROR]{ColoredLog.RESET} {msg}", file=sys.stderr)
 
 
 # ------------------ 核心下载器 ------------------
@@ -79,12 +52,15 @@ class M3U8Downloader:
 
     # ---------- 1. 解析 ----------
     def parse(self) -> None:
-        ColoredLog.info("正在下载与解析 m3u8...")
+        logger.info("正在下载与解析 m3u8...")
         try:
             resp = requests.get(self.m3u8_url, timeout=self.timeout)
             resp.raise_for_status()
+        except KeyboardInterrupt:
+            logger.error("用户中断")
+            sys.exit(130)
         except Exception as e:
-            ColoredLog.error(f"m3u8 下载失败: {e}")
+            logger.error(f"m3u8 下载失败: {e}")
             sys.exit(1)
 
         lines = resp.text.splitlines()
@@ -100,7 +76,7 @@ class M3U8Downloader:
                     line if line.startswith("http") else base_url + line
                 )
 
-        ColoredLog.info(f"共解析到 {len(self.ts_urls)} 个分片")
+        logger.info(f"共解析到 {len(self.ts_urls)} 个分片")
 
     def _parse_key(self, line: str) -> None:
         """
@@ -119,24 +95,28 @@ class M3U8Downloader:
         if uri_part.startswith("http"):
             try:
                 key_bytes = requests.get(uri_part, timeout=self.timeout).content
+            except KeyboardInterrupt:
+                logger.error("用户中断")
+                sys.exit(130)
             except Exception as e:
-                ColoredLog.error(f"key 下载失败: {e}")
+                logger.error(f"key 下载失败: {e}")
                 sys.exit(1)
         else:
             # 直接当成 hex
             try:
                 key_bytes = bytes.fromhex(uri_part)
             except ValueError:
-                ColoredLog.error("key 格式错误，应为 hex 或 http(s) 链接")
+                logger.error("key 格式错误，应为 hex 或 http(s) 链接")
                 sys.exit(1)
 
         self.key = key_bytes
         self.iv = bytes.fromhex(iv_part[2:]) if iv_part.startswith("0x") else key_bytes
-        ColoredLog.info(f"获取加密 key={self.key.hex()} iv={self.iv.hex()}")
+        logger.info(f"获取加密 key={self.key.hex()} iv={self.iv.hex()}")
 
     # ---------- 2. 下载 ----------
+
     def download(self) -> None:
-        ColoredLog.info("开始下载分片...")
+        logger.info("开始下载分片...")
         temp_dir = self.output.with_suffix(".parts")
         temp_dir.mkdir(exist_ok=True)
 
@@ -147,14 +127,17 @@ class M3U8Downloader:
                     resp = requests.get(ts_url, timeout=self.timeout)
                     resp.raise_for_status()
                     break
+                except KeyboardInterrupt:
+                    logger.error("用户中断")
+                    sys.exit(130)
                 except Exception as e:
                     retry -= 1
-                    ColoredLog.warn(
+                    logger.warning(
                         f"[{idx}/{len(self.ts_urls)}] 下载失败: {e}，剩余重试 {retry}"
                     )
                     time.sleep(1)
             else:
-                ColoredLog.error("多次重试仍失败，程序终止")
+                logger.error("多次重试仍失败，程序终止")
                 sys.exit(1)
 
             data = resp.content
@@ -163,7 +146,7 @@ class M3U8Downloader:
 
             temp_file = temp_dir / f"{idx:06}.ts"
             temp_file.write_bytes(data)
-            ColoredLog.succ(f"[{idx}/{len(self.ts_urls)}] 完成")
+            logger.success(f"[{idx}/{len(self.ts_urls)}] 完成")
 
     def _decrypt(self, data: bytes) -> bytes:
         cipher = AES.new(self.key, AES.MODE_CBC, iv=self.iv)
@@ -171,12 +154,12 @@ class M3U8Downloader:
 
     # ---------- 3. 合并 ----------
     def merge(self) -> None:
-        ColoredLog.info("正在合并分片...")
+        logger.info("正在合并分片...")
         temp_dir = self.output.with_suffix(".parts")
         with open(self.output, "wb") as fout:
             for ts_file in sorted(temp_dir.glob("*.ts")):
                 fout.write(ts_file.read_bytes())
-        ColoredLog.succ(f"合并完成 -> {self.output.absolute()}")
+        logger.success(f"合并完成 -> {self.output.absolute()}")
 
     # ---------- 4. 清理 ----------
     def clean(self) -> None:
@@ -191,7 +174,7 @@ class M3U8Downloader:
         self.download()
         self.merge()
         self.clean()
-        ColoredLog.succ("全部任务完成！")
+        logger.success("全部任务完成！")
 
 
 # ------------------ CLI ------------------
@@ -212,4 +195,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    log_init()
     main()

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 syncthing_monitor.py
@@ -21,9 +20,9 @@ syncthing_monitor.py
 from __future__ import annotations
 
 import argparse
-import sys
 import time
 from typing import Any, Dict, Optional
+from cli_logger import log_init, logger
 
 import requests
 
@@ -36,10 +35,6 @@ def fmt_bytes(num: int) -> str:
             return f"{num:.2f} {unit}"
         num /= 1024.0
     return f"{num:.2f} PB"
-
-
-def log(msg: str) -> None:
-    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}")
 
 
 # ---------- 核心监控 ----------
@@ -73,7 +68,7 @@ class SyncthingMonitor:
             r.raise_for_status()
             return r.json()
         except requests.RequestException as e:
-            log(f"请求失败 {endpoint}: {e}")
+            logger.error(f"请求失败 {endpoint}: {e}")
             return None
 
     # --- 业务接口 ---
@@ -82,9 +77,8 @@ class SyncthingMonitor:
         data = self._get("/rest/db/status", {"folder": self.folder})
         if not data:
             return
-        log(
-            f"文件夹状态: {data['state']}  (上次变更: {data.get('stateChanged', 'N/A')})"
-        )
+        state_changed = data.get("stateChanged", "N/A")
+        logger.info(f"文件夹状态: {data['state']}  (上次变更: {state_changed})")
 
     def folder_size(self) -> None:
         """打印总大小与已完成同步大小"""
@@ -93,7 +87,7 @@ class SyncthingMonitor:
             return
         total = data.get("globalBytes", 0)
         synced = data.get("inSyncBytes", 0)
-        log(f"总大小: {fmt_bytes(total)}  |  已同步: {fmt_bytes(synced)}")
+        logger.info(f"总大小: {fmt_bytes(total)}  |  已同步: {fmt_bytes(synced)}")
 
     def need_file_count(self) -> None:
         """打印待同步文件数"""
@@ -105,7 +99,7 @@ class SyncthingMonitor:
             + len(data.get("queued", []))
             + len(data.get("rest", []))
         )
-        log(f"待同步文件数: {need}")
+        logger.info(f"待同步文件数: {need}")
 
     def sync_speed(self) -> None:
         """计算并打印瞬时同步速度（本地 vs 全局）"""
@@ -127,25 +121,25 @@ class SyncthingMonitor:
                 speed_global = (
                     abs(global_bytes - self._last_bytes.get("global_", 0)) / dt
                 )
-                log(f"同步速度(本地) : {fmt_bytes(int(speed_local))}/s")
-                log(f"同步速度(全局) : {fmt_bytes(int(speed_global))}/s")
+                logger.info(f"同步速度(本地) : {fmt_bytes(int(speed_local))}/s")
+                logger.info(f"同步速度(全局) : {fmt_bytes(int(speed_global))}/s")
 
         self._last_bytes.update(local=local_bytes, global_=global_bytes)
         self._last_time = now
 
     # --- 轮询入口 ---
     def run(self) -> None:
-        log("开始监控...")
+        logger.info("开始监控...")
         while True:
             try:
                 self.folder_status()
                 self.folder_size()
                 self.need_file_count()
                 self.sync_speed()
-                log("-" * 50)
+                logger.info("-" * 50)
                 time.sleep(self.interval)
             except KeyboardInterrupt:
-                log("用户中断，退出")
+                logger.info("用户中断，退出")
                 break
 
 
@@ -173,4 +167,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    log_init()
     main()

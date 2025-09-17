@@ -13,7 +13,7 @@ import sys
 import argparse
 import tempfile
 import subprocess
-from PIL import Image, ImageOps
+from PIL import Image
 from icon_common import parse_hex_color, square_image
 
 # icns 所需全部分辨率
@@ -38,6 +38,8 @@ def build_icns(source_img: Image.Image, output_icns: str):
     subprocess.run(["iconutil", "-c", "icns", iconset, "-o", output_icns], check=True)
     # 清理
     subprocess.run(["rm", "-rf", tempdir])
+
+    print(f"✅ 已生成 -> {output_icns}（含尺寸：{ICNS_SIZES}）")
 
 
 def open_in_viewer(path: str):
@@ -76,7 +78,6 @@ def main():
 
     # 5. 生成 icns
     build_icns(square, out_icns)
-    print("已生成 →", out_icns)
 
     # 6. 打开查看
     open_in_viewer(out_icns)

@@ -12,28 +12,12 @@ from __future__ import annotations
 
 import argparse
 import sys
-import time
 from typing import List, Optional, Tuple
+from cli_logger import log_init, logger
 
 import psutil
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-
-
-class ColoredLog:
-    BLUE, GREEN, RED, RESET = "\033[94m", "\033[92m", "\033[91m", "\033[0m"
-
-    @staticmethod
-    def info(msg: str) -> None:
-        print(f"{ColoredLog.BLUE}[INFO ]{ColoredLog.RESET} {msg}")
-
-    @staticmethod
-    def succ(msg: str) -> None:
-        print(f"{ColoredLog.GREEN}[SUCC ]{ColoredLog.RESET} {msg}")
-
-    @staticmethod
-    def error(msg: str) -> None:
-        print(f"{ColoredLog.RED}[ERROR]{ColoredLog.RESET} {msg}", file=sys.stderr)
 
 
 class ProcessMonitor:
@@ -113,6 +97,10 @@ class ProcessMonitor:
         t = frame * self.interval
         cpu, mem, thd, hdl = self._sample()
 
+        logger.info(
+            f"时间={t}s  CPU={cpu:.2f}%  内存={mem:.2f}MB  线程={thd}  句柄={hdl}"
+        )
+
         self.time_sec.append(t)
         self.cpu.append(cpu)
         self.mem.append(mem)
@@ -124,7 +112,7 @@ class ProcessMonitor:
         if t >= self.duration:
             if self.save_path:
                 self.fig.savefig(self.save_path)
-                ColoredLog.succ(f"图表已保存 → {self.save_path}")
+                logger.success(f"图表已保存 → {self.save_path}")
             plt.close(self.fig)
 
     def _draw_plots(self) -> None:
@@ -143,9 +131,9 @@ class ProcessMonitor:
     # ---------- 启动 ----------
     def run(self) -> None:
         if not self._find_pids():
-            ColoredLog.error(f'未找到含 "{self.process_name}" 的进程，程序退出')
+            logger.error(f'未找到含 "{self.process_name}" 的进程，程序退出')
             sys.exit(1)
-        ColoredLog.info(
+        logger.info(
             f"开始监控 → 间隔={self.interval}s  时长={self.duration}s  保存={self.save_path}"
         )
         plt.show()
@@ -170,8 +158,9 @@ def main() -> None:
     try:
         ProcessMonitor(args.process, args.interval, args.duration, args.save).run()
     except KeyboardInterrupt:
-        ColoredLog.info("用户中断，已退出")
+        logger.info("用户中断，已退出")
 
 
 if __name__ == "__main__":
+    log_init()
     main()

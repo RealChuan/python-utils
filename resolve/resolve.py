@@ -11,27 +11,7 @@ import socket
 import sys
 import argparse
 from typing import List, Tuple
-
-
-class Colors:
-    """跨平台终端颜色"""
-
-    OK = "\033[92m"
-    WARN = "\033[93m"
-    ERR = "\033[91m"
-    BOLD = "\033[1m"
-    END = "\033[0m"
-
-    @staticmethod
-    def enable_windows_color() -> None:
-        """Windows 10+ 启用 ANSI 转义序列"""
-        if sys.platform == "win32":
-            import os
-
-            os.system("")
-
-
-Colors.enable_windows_color()
+from utils import Colors
 
 
 def get_host_info(domain: str) -> Tuple[List[str], List[str], str, List[str]]:

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 tree.py
@@ -9,27 +8,12 @@ tree.py
     python tree.py /path/to/dir -r       # 递归子目录
     python tree.py -h
 """
-import os
+
 import sys
 import argparse
 from pathlib import Path
 from typing import List
-
-
-class Colors:
-    OK = "\033[92m"
-    WARN = "\033[93m"
-    ERR = "\033[91m"
-    BOLD = "\033[1m"
-    END = "\033[0m"
-
-    @staticmethod
-    def enable_windows_color() -> None:
-        if sys.platform == "win32":
-            os.system("")
-
-
-Colors.enable_windows_color()
+from utils import Colors
 
 PREFIX_MIDDLE = "├── "
 PREFIX_LAST = "└── "

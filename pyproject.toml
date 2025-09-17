@@ -1,0 +1,27 @@
+[build-system]
+requires      = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name         = "python-utils"
+version      = "0.0.1"
+description  = "个人常用脚本集合"
+readme       = "README.md"
+authors      = [
+    { name = "浮生若梦", email = "sun1070753498@163.com" },
+]
+license      = { file = "LICENSE" }
+dependencies = [
+    "blake3",
+    "loguru",
+    "matplotlib",
+    "paramiko",
+    "Pillow",
+    "psutil",
+    "pycryptodome",
+    "requests",
+    "watchdog",
+]
+
+[tool.setuptools]
+packages = ["cli_logger", "utils"]

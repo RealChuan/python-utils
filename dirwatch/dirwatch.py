@@ -24,42 +24,16 @@ dirwatch.py
 from __future__ import annotations
 
 import argparse
-import hashlib
-import logging
 import os
 import sys
 import time
 from pathlib import Path
 from queue import Queue
 from typing import Dict, List, Optional, Tuple
+from cli_logger import log_init, logger
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
-
-
-# ---------- 彩色日志 ----------
-class ColoredLog:
-    BLUE = "\033[94m"
-    GREEN = "\033[92m"
-    YELLOW = "\033[93m"
-    RED = "\033[91m"
-    RESET = "\033[0m"
-
-    @staticmethod
-    def info(msg: str) -> None:
-        print(f"{ColoredLog.BLUE}[INFO ]{ColoredLog.RESET} {msg}")
-
-    @staticmethod
-    def succ(msg: str) -> None:
-        print(f"{ColoredLog.GREEN}[SUCC ]{ColoredLog.RESET} {msg}")
-
-    @staticmethod
-    def warn(msg: str) -> None:
-        print(f"{ColoredLog.YELLOW}[WARN ]{ColoredLog.RESET} {msg}", file=sys.stderr)
-
-    @staticmethod
-    def error(msg: str) -> None:
-        print(f"{ColoredLog.RED}[ERROR]{ColoredLog.RESET} {msg}", file=sys.stderr)
 
 
 # ---------- 事件处理器 ----------
@@ -71,23 +45,23 @@ class _EventHandler(FileSystemEventHandler):
 
     def on_created(self, event) -> None:
         typ = "dir" if event.is_directory else "file"
-        ColoredLog.info(f"{typ} created: {event.src_path}")
+        logger.info(f"{typ} created: {event.src_path}")
         self.queue.put((event.src_path, None, "created"))
 
     def on_deleted(self, event) -> None:
         typ = "dir" if event.is_directory else "file"
-        ColoredLog.warn(f"{typ} deleted: {event.src_path}")
+        logger.warning(f"{typ} deleted: {event.src_path}")
         self.queue.put((event.src_path, None, "deleted"))
 
     def on_modified(self, event) -> None:
         if event.is_directory:
             return
-        ColoredLog.info(f"file modified: {event.src_path}")
+        logger.info(f"file modified: {event.src_path}")
         self.queue.put((event.src_path, None, "modified"))
 
     def on_moved(self, event) -> None:
         typ = "dir" if event.is_directory else "file"
-        ColoredLog.info(f"{typ} moved: {event.src_path} -> {event.dest_path}")
+        logger.info(f"{typ} moved: {event.src_path} -> {event.dest_path}")
         self.queue.put((event.src_path, event.dest_path, "moved"))
 
 
@@ -112,13 +86,13 @@ class DirWatch:
         handler = _EventHandler(self._queue)
         self._observer.schedule(handler, str(self.path), recursive=True)
         self._observer.start()
-        ColoredLog.succ(f"开始监控 {self.path}  … 按 Ctrl+C 退出")
+        logger.success(f"开始监控 {self.path}  … 按 Ctrl+C 退出")
 
     def stop(self) -> None:
         """优雅停止"""
         self._observer.stop()
         self._observer.join()
-        ColoredLog.info("监控已停止")
+        logger.info("监控已停止")
 
     def get_changes(self) -> List[Tuple[str, Optional[str], str]]:
         """非阻塞获取当前事件队列"""
@@ -132,7 +106,7 @@ class DirWatch:
 
     # --- 内部辅助 ---
     def _take_snapshot(self) -> None:
-        ColoredLog.info("正在生成初始快照 …")
+        logger.info("正在生成初始快照 …")
         for root, _, files in os.walk(self.path):
             for file in files:
                 fp = Path(root) / file
@@ -141,8 +115,8 @@ class DirWatch:
                     # 用 size+mtime 当唯一标识
                     self._snapshot[str(fp)] = f"{st.st_size}-{st.st_mtime}"
                 except Exception as e:
-                    ColoredLog.warn(f"跳过 {fp}: {e}")
-        ColoredLog.succ(f"快照完成，共 {len(self._snapshot)} 个文件")
+                    logger.warning(f"跳过 {fp}: {e}")
+        logger.success(f"快照完成，共 {len(self._snapshot)} 个文件")
 
 
 # ---------- CLI ----------
@@ -164,9 +138,9 @@ def main() -> None:
             time.sleep(2)
             changes = watch.get_changes()
             if changes:
-                ColoredLog.succ(f"最近变动: {changes}")
+                logger.success(f"最近变动: {changes}")
     except KeyboardInterrupt:
-        ColoredLog.info("用户中断")
+        logger.info("用户中断")
     finally:
         watch.stop()
 
@@ -197,6 +171,8 @@ class TestDirWatch(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    log_init()
+
     # 若命令行含 -t 则跑单测，否则跑 CLI
     if "-t" in sys.argv:
         sys.argv.remove("-t")
