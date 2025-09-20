@@ -16,6 +16,10 @@ import subprocess
 from PIL import Image
 from icon_common import parse_hex_color, square_image
 
+
+if sys.platform != "darwin":  # 非 macOS 立即退出
+    sys.exit("ERROR: 该脚本只能运行在 macOS 上。")
+
 # icns 所需全部分辨率
 ICNS_SIZES = [16, 32, 64, 128, 256, 512, 1024]
 
