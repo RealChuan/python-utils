@@ -12,14 +12,13 @@
 | **cli_logger** | loguru 日志配置示例，控制台 + 文件双通道输出 | [`cli_logger.py`](cli_logger/cli_logger.py) |
 | **dirwatch** | 实时监控文件夹变化（增/删/改/重命名） | [`dirwatch.py`](dirwatch/dirwatch.py) |
 | **hash** | 计算文件或文本的哈希值（MD5/SHA-1/SHA-2/SHA-3/BLAKE2/BLAKE3） | [`hash.py`](hash/hash.py) |
-| **icon-maker** | 一键生成 macOS / Windows 应用图标（`.icns` / `.ico`） | [`make_icns.py`](icon-maker/make_icns.py) / [`make_ico.py`](icon-maker/make_ico.py) |
+| **image-toolkit** | 图片格式转换工具 + 一键生成/解析`.icns` / `.ico` | [`convert_img.py`](image-toolkit/convert_img.py) / [`dump_icns.py`](image-toolkit/dump_icns.py) / [`dump_ico.py`](image-toolkit/dump_ico.py) / [`make_icns.py`](image-toolkit/make_icns.py) / [`make_ico.py`](image-toolkit/make_ico.py) |
 | **m3u8_download** | m3u8 下载器，自动合并 ts 为单个视频 | [`m3u8_dl.py`](m3u8_download/m3u8_dl.py) |
 | **procmon** | 按进程名实时监控 CPU/内存/线程/句柄 | [`procmon.py`](procmon/procmon.py) |
 | **resolve** | 域名解析工具，快速获取 IP、端口、协议信息 | [`resolve.py`](resolve/resolve.py) |
 | **syncthing** | Syncthing API 封装，监控文件夹与设备状态 | [`syncthing_monitor.py`](syncthing/syncthing_monitor.py) |
 | **tree** | 可视化目录树生成工具 | [`tree.py`](tree/tree.py) |
 | **utils** | 通用工具库（颜色输出等） | [`colors.py`](utils/colors.py) |
-| **webdav** | 轻量级 WebDAV 客户端，支持上传/下载/删除/移动 | [`webdav.py`](webdav/webdav.py) |
 | **sync_req** | 依赖同步工具，从 pyproject.toml 生成 requirements.txt | [`sync_req.py`](sync_req.py) |
 
 ## 🚀 快速开始
@@ -39,7 +38,7 @@ source venv/bin/activate
 source activate_venv.sh
 
 # 安装依赖
-pip install -e . -i https://pypi.tuna.tsinghua.edu.cn/simple
+pip install -e . -i https://pypi.tuna.tsinghua.edu.cn/simple 
 ```
 
 ### 同步依赖文件
@@ -51,7 +50,7 @@ pip install -e . -i https://pypi.tuna.tsinghua.edu.cn/simple
 python sync_req.py
 
 # 使用生成的 requirements.txt 安装依赖
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple 
 ```
 
 ### 使用说明

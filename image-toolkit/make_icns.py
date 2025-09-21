@@ -4,9 +4,10 @@ make-icns.py
 在 macOS 下把任意图片做成 .icns 图标并自动用系统预览打开。
 
 用法:
-    ./make-icns.py input.png                    # 透明背景
-    ./make-icns.py input.jpg "#FF00FF"          # 指定背景色
-    ./make-icns.py input.tiff -o MyIcon.icns    # 指定输出文件名
+    ./make-icns.py input.png                          # 透明背景，默认用 Pillow
+    ./make-icns.py input.jpg "#FF00FF"                # 指定背景色
+    ./make-icns.py input.tiff -o MyIcon.icns          # 指定输出文件名
+    ./make-icns.py input.png --engine iconutil        # 强制使用 iconutil
 """
 import os
 import sys
@@ -16,12 +17,31 @@ import subprocess
 from PIL import Image
 from icon_common import parse_hex_color, square_image
 
+if sys.platform != "darwin":  # 非 macOS 立即退出
+    sys.exit("ERROR: 该脚本只能运行在 macOS 上。")
+
 # icns 所需全部分辨率
 ICNS_SIZES = [16, 32, 64, 128, 256, 512, 1024]
 
 
-def build_icns(source_img: Image.Image, output_icns: str):
-    """生成 .icns 文件"""
+def build_icns_pillow(source_img: Image.Image, output_icns: str):
+    """使用 Pillow 生成 .icns（跨平台，无需 iconutil）"""
+    # 准备所有分辨率版本
+    icons = []
+    for size in ICNS_SIZES:
+        for scale, suffix in [(1, ""), (2, "@2x")]:
+            px = size * scale
+            img_scaled = source_img.resize((px, px), Image.LANCZOS)
+            # Pillow 5.1+ 会根据图像尺寸自动匹配到对应槽位
+            icons.append(img_scaled)
+
+    # 第一张作为主图，其余作为 append_images
+    icons[0].save(output_icns, format="ICNS", append_images=icons[1:])
+    print(f"✅ 已生成 -> {output_icns}（Pillow 引擎，含尺寸：{ICNS_SIZES}）")
+
+
+def build_icns_iconutil(source_img: Image.Image, output_icns: str):
+    """生成 .icns 文件（iconutil 版）"""
     tempdir = tempfile.mkdtemp()
     iconset = os.path.join(tempdir, "Icon.iconset")
     os.makedirs(iconset)
@@ -39,7 +59,14 @@ def build_icns(source_img: Image.Image, output_icns: str):
     # 清理
     subprocess.run(["rm", "-rf", tempdir])
 
-    print(f"✅ 已生成 -> {output_icns}（含尺寸：{ICNS_SIZES}）")
+    print(f"✅ 已生成 -> {output_icns}（iconutil 引擎，含尺寸：{ICNS_SIZES}）")
+
+
+def build_icns(source_img: Image.Image, output_icns: str, engine: str = "pillow"):
+    if engine == "pillow":
+        build_icns_pillow(source_img, output_icns)
+    else:
+        build_icns_iconutil(source_img, output_icns)
 
 
 def open_in_viewer(path: str):
@@ -52,6 +79,12 @@ def main():
     parser.add_argument("input", help="输入图片路径")
     parser.add_argument("bgcolor", nargs="?", help="背景色（十六进制，可选，默认透明）")
     parser.add_argument("-o", "--output", help="输出 .icns 文件名（可选）")
+    parser.add_argument(
+        "--engine",
+        choices=["pillow", "iconutil"],
+        default="pillow",
+        help="选择生成引擎：pillow（默认）或 iconutil",
+    )
     args = parser.parse_args()
 
     if not os.path.isfile(args.input):
@@ -77,7 +110,7 @@ def main():
         out_icns = base + ".icns"
 
     # 5. 生成 icns
-    build_icns(square, out_icns)
+    build_icns(square, out_icns, engine=args.engine)
 
     # 6. 打开查看
     open_in_viewer(out_icns)

@@ -16,25 +16,27 @@ from icon_common import parse_hex_color, square_image
 
 # 常用 ico 尺寸（Windows 推荐倒序存放）
 # Pillow 还是会从小到大生成，无视传入的顺序
-ICO_SIZES = [256, 128, 64, 48, 32, 16]
+ICO_SIZES = [256, 128, 64, 48, 32, 24, 16]
 
 
-def build_ico(source_img: Image.Image, output_ico: str) -> None:
+def build_ico(source_img: Image.Image, output_ico: str, use_bmp: bool = False) -> None:
     """生成 .ico 文件"""
 
     icons = []
     for size in ICO_SIZES:
         icons.append(source_img.resize((size, size), Image.LANCZOS))
 
-    # 保存为 ico（Pillow 会自动打包多尺寸）
-    # 写入为PNG压缩格式，windows 文件属性分辨率只能识别第一张图，即16x16
-    icons[0].save(
-        output_ico,
-        format="ICO",
-        sizes=[(s, s) for s in ICO_SIZES],
-        append_images=icons[1:],
-    )
-    print(f"✅ 已生成 -> {output_ico}（含尺寸：{ICO_SIZES}）")
+    save_kw = {
+        "format": "ICO",
+        "sizes": [(s, s) for s in ICO_SIZES],
+        "append_images": icons[1:],
+    }
+    if use_bmp:  # 只有用户显式要求才加
+        save_kw["bitmap_format"] = "bmp"
+
+    icons[0].save(output_ico, **save_kw)
+    fmt = "BMP" if use_bmp else "PNG"
+    print(f"✅ 已生成 -> {output_ico}（{fmt} 压缩，含尺寸：{ICO_SIZES}）")
 
 
 def main(argv=None):
@@ -42,6 +44,11 @@ def main(argv=None):
     parser.add_argument("input", help="输入图片路径")
     parser.add_argument("bgcolor", nargs="?", help="背景色（十六进制，可选，默认透明）")
     parser.add_argument("-o", "--output", help="输出 .ico 文件名（可选）")
+    parser.add_argument(
+        "--bmp",
+        action="store_true",
+        help="用 BMP 帧写入 ICO：无压缩、体积大，但 Windows 资源查看器“属性-详细信息”页可立即显示前五帧里最大的尺寸。",
+    )
     args = parser.parse_args()
 
     if not os.path.isfile(args.input):
@@ -67,7 +74,7 @@ def main(argv=None):
         out_ico = base + ".ico"
 
     # 5. 生成 ico
-    build_ico(square, out_ico)
+    build_ico(square, out_ico, use_bmp=args.bmp)  # 把开关传进去
 
 
 if __name__ == "__main__":
