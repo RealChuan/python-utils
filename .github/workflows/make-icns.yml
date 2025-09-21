@@ -1,0 +1,53 @@
+name: Make ICNS
+
+on: 
+  push:
+    paths:
+        - 'icns/**'
+  pull_request:
+    paths:
+        - 'icns/**'
+
+jobs:
+  build:
+    name: Make ICNS
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v5
+        with: 
+          fetch-depth: 1
+          
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Set up environment and process icons
+        shell: bash
+        run: |
+          source activate_venv.sh
+
+          python3 -m pip install --upgrade pip
+          pip install -e .
+
+          for img in icns/*; do
+            python3 image-toolkit/make_icns.py "$img" --engine iconutil
+          done
+
+          for icns in icns/*.icns; do
+            base=$(basename "$icns" .icns)
+            iconutil -c iconset "$icns" -o "icns/${base}.iconset"
+            python3 image-toolkit/dump_icns.py "$icns" -s
+          done
+
+          python3 tree/tree.py icns -r -f
+
+          deactivate
+
+      - name: Upload ICNS files
+        uses: actions/upload-artifact@v4
+        with:
+          name: icns-files
+          path: icns/*.icns
+          
