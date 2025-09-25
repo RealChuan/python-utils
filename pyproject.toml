@@ -13,6 +13,7 @@ authors      = [
 license      = { file = "LICENSE" }
 dependencies = [
     "blake3",
+    "cmake_format",
     "loguru",
     "matplotlib",
     "paramiko",
