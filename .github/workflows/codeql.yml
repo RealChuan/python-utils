@@ -1,0 +1,58 @@
+name: CodeQL Security Analysis
+
+on:
+  push:
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/.gitignore'
+      - '**/LICENSE*'
+      - '**/README*'
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/.gitignore'
+      - '**/LICENSE*'
+      - '**/README*'
+    branches-ignore:
+      - 'dependabot/**'
+  schedule:
+    - cron: '0 0 1 * *'  # 每月1号运行
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1  
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+
+      - name: Install uv and dependencies
+        run: |
+          pip install uv
+          uv sync --dev
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: python
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v4
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4

@@ -23,22 +23,39 @@
 
 ## 🚀 快速开始
 
-### 安装依赖
+### 安装 uv
 
-推荐使用虚拟环境：
+首先需要安装 uv - 极速的 Python 包管理器和项目工具链：
+
+**使用 pip 安装（跨平台）：**
 
 ```bash
-# 创建虚拟环境
-python -m venv venv
+pip install uv -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
 
-# 激活虚拟环境 (Linux/macOS)
-source venv/bin/activate
+**验证安装：**
 
-# 或使用提供的脚本激活
-source activate_venv.sh
+```bash
+uv --version
+```
 
-# 安装依赖
-pip install -e . -i https://pypi.tuna.tsinghua.edu.cn/simple 
+### 安装项目依赖
+
+使用 uv 管理项目依赖：
+
+```bash
+# 使用 uv 创建虚拟环境并安装所有依赖（一步完成）
+uv sync --dev
+
+# 或者分步执行：
+# 1. 创建虚拟环境（默认在 .venv 目录）
+uv venv
+
+# 2. 激活虚拟环境 (Linux/macOS)
+source .venv/bin/activate
+
+# 3. 安装项目依赖（可编辑模式）
+uv pip install -e .
 ```
 
 ### 同步依赖文件
@@ -49,10 +66,23 @@ pip install -e . -i https://pypi.tuna.tsinghua.edu.cn/simple
 # 生成 requirements.txt
 python sync_req.py
 
-# 使用生成的 requirements.txt 安装依赖
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple 
+# 使用 uv 通过 requirements.txt 安装依赖
+uv pip install -r requirements.txt
+```
+
+### 使用清华镜像加速（可选）
+
+如果需要使用国内镜像源：
+
+```bash
+# 设置环境变量使用清华镜像
+export UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+uv sync --dev
+
+# 或者单次命令指定镜像
+uv pip install -e . -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 ### 使用说明
 
-👉 直接 `cd` 进对应目录，`python xxx.py -h` 即可开玩！
+👉 直接 `cd` 进对应目录，`uv run python xxx.py -h` 查看具体用法！
