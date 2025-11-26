@@ -7,10 +7,11 @@ name         = "python-utils"
 version      = "0.0.1"
 description  = "个人常用脚本集合"
 readme       = "README.md"
+requires-python = ">=3.9"
 authors      = [
     { name = "浮生若梦", email = "sun1070753498@163.com" },
 ]
-license      = { file = "LICENSE" }
+license-files = ["LICENSE"]
 dependencies = [
     "blake3",
     "cmake_format",
@@ -25,4 +26,4 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["cli_logger", "utils"]
+package-dir = { "" = "src" }
