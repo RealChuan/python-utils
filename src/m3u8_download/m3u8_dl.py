@@ -5,7 +5,7 @@ m3u8_dl.py
 通用 M3U8 下载/解密/合并工具（AES-128/CBC）。
 
 用法:
-    python m3u8_dl.py -u <m3u8_url> -o <输出.mp4> [-k <key_hex_or_url>] [-t 超时秒数]
+    python m3u8_dl.py -u <m3u8_url> -o <输出.mp4> [-k <key_hex_or_url>] [-t 超时秒数] [-H <headers>]
 
 示例:
     # 无加密
@@ -16,6 +16,12 @@ m3u8_dl.py
 
     # key 由服务器下发
     python m3u8_dl.py -u https://example.com/index.m3u8 -o movie.mp4 -k https://example.com/key.bin
+
+    # 使用命令行直接指定 HTTP 头
+    python m3u8_dl.py -u https://example.com/index.m3u8 -o movie.mp4 -H "Authorization:token123 User-Agent:Mozilla/5.0"
+
+    # 使用头文件
+    python m3u8_dl.py -u https://example.com/index.m3u8 -o movie.mp4 -H headers.txt
 """
 from __future__ import annotations
 
@@ -39,6 +45,7 @@ class M3U8Downloader:
         output: str,
         key: Optional[str] = None,
         timeout: int = 30,
+        headers: Optional[dict] = None,
     ) -> None:
         self.m3u8_url = m3u8_url
         self.output = Path(output)
@@ -46,6 +53,7 @@ class M3U8Downloader:
         self.iv: Optional[bytes] = None
         self.timeout = timeout
         self.ts_urls: List[str] = []
+        self.headers = headers or {}
 
         # 自动创建输出目录
         self.output.parent.mkdir(parents=True, exist_ok=True)
@@ -54,7 +62,9 @@ class M3U8Downloader:
     def parse(self) -> None:
         logger.info("正在下载与解析 m3u8...")
         try:
-            resp = requests.get(self.m3u8_url, timeout=self.timeout)
+            resp = requests.get(
+                self.m3u8_url, headers=self.headers, timeout=self.timeout
+            )
             resp.raise_for_status()
         except KeyboardInterrupt:
             logger.error("用户中断")
@@ -94,7 +104,9 @@ class M3U8Downloader:
         # 下载 key
         if uri_part.startswith("http"):
             try:
-                key_bytes = requests.get(uri_part, timeout=self.timeout).content
+                key_bytes = requests.get(
+                    uri_part, headers=self.headers, timeout=self.timeout
+                ).content
             except KeyboardInterrupt:
                 logger.error("用户中断")
                 sys.exit(130)
@@ -124,7 +136,9 @@ class M3U8Downloader:
             retry = 3
             while retry:
                 try:
-                    resp = requests.get(ts_url, timeout=self.timeout)
+                    resp = requests.get(
+                        ts_url, headers=self.headers, timeout=self.timeout
+                    )
                     resp.raise_for_status()
                     break
                 except KeyboardInterrupt:
@@ -178,6 +192,46 @@ class M3U8Downloader:
 
 
 # ------------------ CLI ------------------
+def parse_headers(headers_arg: Optional[str]) -> dict:
+    """
+    解析 headers 参数，支持：
+    1. 文件路径：读取文件中的每一行作为一个头部
+    2. 命令行参数：直接解析 "Header1:value1 Header2:value2" 格式
+
+    返回一个 headers 字典
+    """
+    headers = {}
+    if not headers_arg:
+        return headers
+
+    # 尝试作为文件路径处理
+    file_path = Path(headers_arg)
+    if file_path.exists() and file_path.is_file():
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and ":" in line:
+                        key, value = line.split(":", 1)
+                        headers[key.strip()] = value.strip()
+            logger.info(f"从文件 {file_path} 加载请求头")
+            return headers
+        except Exception as e:
+            logger.warning(f"读取请求头文件失败: {e}")
+
+    # 作为命令行参数解析
+    header_pairs = headers_arg.split()
+    for pair in header_pairs:
+        if ":" in pair:
+            key, value = pair.split(":", 1)
+            headers[key.strip()] = value.strip()
+
+    if headers:
+        logger.info(f"解析到 {len(headers)} 个请求头")
+
+    return headers
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="M3U8 下载/解密/合并工具")
     parser.add_argument("-u", "--url", required=True, help="m3u8 地址")
@@ -188,9 +242,17 @@ def main() -> None:
     parser.add_argument(
         "-t", "--timeout", type=int, default=30, help="超时秒数，默认 30"
     )
+    parser.add_argument(
+        "-H",
+        "--headers",
+        help="HTTP 请求头文件路径或直接输入的头信息（格式: Header1:value1 Header2:value2 或文件路径）",
+    )
     args = parser.parse_args()
 
-    dl = M3U8Downloader(args.url, args.output, args.key, args.timeout)
+    # 解析 headers
+    headers = parse_headers(args.headers)
+
+    dl = M3U8Downloader(args.url, args.output, args.key, args.timeout, headers)
     dl.run()
 
 
